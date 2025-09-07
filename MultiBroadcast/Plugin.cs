@@ -2,25 +2,28 @@
 using HarmonyLib;
 using System;
 
-public class Plugin : Plugin<Config>
+namespace MultiBroadcast
 {
-    public static Plugin Instance { get; private set; }
-    public virtual string Name => "MultiBroadcastRevamp";
-    public virtual string Author => "Cocoa, Revamp by A3indae";
-    public virtual Version Version { get; } = new Version(1, 0, 0);
-    private Harmony Harmony { get; set; }
-    public override void OnEnabled()
+    public class Plugin : Plugin<Config>
     {
-        base.OnEnabled();
-        Plugin.Instance = this;
-        this.Harmony = new Harmony($"a3indae.multi_broadcastrevamp.{DateTime.Now.Ticks}");
-        this.Harmony.PatchAll();
-    }
-    public override void OnDisabled()
-    {
-        this.Harmony.UnpatchAll(null);
-        this.Harmony = null;
-        Plugin.Instance = null;
-        base.OnDisabled();
+        public static Plugin Instance { get; private set; }
+        public virtual string Name => "MultiBroadcastRevamp";
+        public virtual string Author => "Cocoa, Revamp by A3indae";
+        public virtual Version Version { get; } = new Version(1, 0, 0);
+        private Harmony Harmony { get; set; }
+        public override void OnEnabled()
+        {
+            base.OnEnabled();
+            Plugin.Instance = this;
+            this.Harmony = new Harmony($"a3indae.multi_broadcastrevamp.{DateTime.Now.Ticks}");
+            this.Harmony.PatchAll();
+        }
+        public override void OnDisabled()
+        {
+            this.Harmony.UnpatchAll(null);
+            this.Harmony = null;
+            Plugin.Instance = null;
+            base.OnDisabled();
+        }
     }
 }

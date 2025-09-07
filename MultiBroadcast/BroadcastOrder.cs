@@ -1,5 +1,8 @@
-﻿public enum BroadcastOrder
+﻿namespace MultiBroadcast
 {
-    Descending,
-    Ascending,
+    public enum BroadcastOrder
+    {
+        Descending,
+        Ascending,
+    }
 }

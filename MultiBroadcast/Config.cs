@@ -1,13 +1,16 @@
 ﻿using Exiled.API.Interfaces;
 using System.ComponentModel;
 
-public class Config : IConfig
+namespace MultiBroadcast
 {
-    public bool IsEnabled { get; set; } = true;
+    public class Config : IConfig
+    {
+        public bool IsEnabled { get; set; } = true;
 
-    public bool Debug { get; set; } = false;
+        public bool Debug { get; set; } = false;
 
-    public bool ReplaceBroadcastCommand { get; set; } = true;
+        public bool ReplaceBroadcastCommand { get; set; } = true;
 
-    public BroadcastOrder Order { get; set; } = BroadcastOrder.Descending;
+        public BroadcastOrder Order { get; set; } = BroadcastOrder.Descending;
+    }
 }
