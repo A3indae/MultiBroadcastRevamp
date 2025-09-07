@@ -1,68 +1,176 @@
-﻿using CommandSystem;
+﻿using System;
+using System.Linq;
+using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin.Broadcasts;
 using Exiled.API.Features;
 using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using NorthwoodLib.Pools;
 using Utils;
+using BroadcastCommand = CommandSystem.Commands.RemoteAdmin.Broadcasts.BroadcastCommand;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace MultiBroadcast.Patches
+namespace MultiBroadcast.Patches;
+
+[HarmonyPatch(typeof(ClearBroadcastCommand), nameof(ClearBroadcastCommand.Execute))]
+internal class ClearBroadcastPatch
 {
-    [HarmonyPatch(typeof(BroadcastCommand), "OnExecute")]
-    internal class BroadcastPatch
+    public static bool Prefix(ArraySegment<string> arguments, ICommandSender sender, ref string response,
+        ref bool __result)
     {
-        public static bool Prefix(
-          BroadcastCommand __instance,
-          ArraySegment<string> arguments,
-          ICommandSender sender,
-          ref string response,
-          ref bool __result)
+        if (!Plugin.Instance.Config.ReplaceBroadcastCommand)
         {
-            if (!Plugin.Instance.Config.ReplaceBroadcastCommand)
-            {
-                Log.Info("Broadcast command is not replaced");
-                return true;
-            }
-            string inputDuration = arguments.At<string>(0);
-            ushort time;
-            if (!IsValidDuration(inputDuration, out time))
-            {
-                response = $"Invalid argument for duration: {inputDuration} Usage: {arguments.At<string>(0)} {__instance.DisplayCommandUsage()}";
-                __result = false;
-                return false;
-            }
-            Broadcast.BroadcastFlags broadcastFlag;
-            bool flag = HasInputFlag(arguments.At<string>(1), out broadcastFlag, __instance.MinimumArguments, arguments.Count);
-            string text = RAUtils.FormatArguments(arguments, flag ? 2 : 1);
-            IEnumerable<MultiBroadcast.API.Broadcast> source = MultiBroadcast.API.MultiBroadcast.AddMapBroadcast(time, text);
-            List<int> list = source != null ? source.Select<MultiBroadcast.API.Broadcast, int>((Func<MultiBroadcast.API.Broadcast, int>)(bc => bc.Id)).ToList<int>() : (List<int>)null;
-            ServerLogs.AddLog(ServerLogs.Modules.Administrative, $"{sender.LogName} broadcast text \"{text}\". Duration: {inputDuration} seconds. Broadcast Flag: {broadcastFlag}.", ServerLogs.ServerLogType.RemoteAdminActivity_GameChanging);
-            response = source == null ? "Error on adding broadcast" : "Added broadcast for all players with id " + string.Join<int>(", ", (IEnumerable<int>)list);
-            __result = true;
+            Log.Info("Broadcast command is not replaced");
+            return true;
+        }
+
+        if (!sender.CheckPermission(PlayerPermissions.Broadcasting, out response))
+        {
+            __result = false;
             return false;
         }
 
-        //protected
-        private static bool HasInputFlag(string inputFlag, out Broadcast.BroadcastFlags broadcastFlag, int minimumArguments, int argumentCount = 0)
-        {
-            bool num = RAUtils.IsDigit.IsMatch(inputFlag);
-            broadcastFlag = Broadcast.BroadcastFlags.Normal;
-            if (!num && argumentCount >= minimumArguments + 1)
-            {
-                return Enum.TryParse<Broadcast.BroadcastFlags>(inputFlag, ignoreCase: true, out broadcastFlag);
-            }
+        ServerLogs.AddLog(ServerLogs.Modules.Administrative, sender.LogName + " cleared all broadcasts.",
+            ServerLogs.ServerLogType.RemoteAdminActivity_GameChanging);
+        API.MultiBroadcast.ClearAllBroadcasts();
+        response = "All broadcasts cleared.";
+        __result = true;
+        return false;
+    }
+}
 
+[HarmonyPatch(typeof(BroadcastCommand), nameof(BroadcastCommand.OnExecute))]
+internal class BroadcastPatch
+{
+    public static bool Prefix(BroadcastCommand __instance, ArraySegment<string> arguments, ICommandSender sender,
+        ref string response, ref bool __result)
+    {
+        if (!Plugin.Instance.Config.ReplaceBroadcastCommand)
+        {
+            Log.Info("Broadcast command is not replaced");
+            return true;
+        }
+
+        var text = arguments.At(0);
+        if (!IsValidDuration(text, out var time))
+        {
+            response = string.Concat("Invalid argument for duration: ", text, " Usage: ", arguments.At(0), " ",
+                __instance.DisplayCommandUsage());
+            __result = false;
             return false;
         }
-        private static bool IsValidDuration(string inputDuration, out ushort time)
-        {
-            if (ushort.TryParse(inputDuration, out time))
-            {
-                return time > 0;
-            }
 
+        var flag = HasInputFlag(arguments.At(1), out var broadcastFlags, __instance.MinimumArguments, arguments.Count);
+        var text2 = RAUtils.FormatArguments(arguments, flag ? 2 : 1);
+        var bcs = API.MultiBroadcast.AddMapBroadcast(time, text2);
+        var ids = bcs?.Select(bc => bc.Id).ToList();
+        ServerLogs.AddLog(ServerLogs.Modules.Administrative,
+            $"{sender.LogName} broadcast text \"{text2}\". Duration: {text} seconds. Broadcast Flag: {broadcastFlags}.", ServerLogs.ServerLogType.RemoteAdminActivity_GameChanging);
+        response = bcs == null ? "Error on adding broadcast" : $"Added broadcast for all players with id {string.Join(", ", ids)}";
+        __result = true;
+        return false;
+    }
+
+    private static bool HasInputFlag(string inputFlag, out Broadcast.BroadcastFlags broadcastFlag, int minimumArguments, int argumentCount = 0)
+    {
+        bool num = RAUtils.IsDigit.IsMatch(inputFlag);
+        broadcastFlag = Broadcast.BroadcastFlags.Normal;
+        if (!num && argumentCount >= minimumArguments + 1)
+        {
+            return Enum.TryParse<Broadcast.BroadcastFlags>(inputFlag, ignoreCase: true, out broadcastFlag);
+        }
+
+        return false;
+    }
+
+    private static bool IsValidDuration(string inputDuration, out ushort time)
+    {
+        if (ushort.TryParse(inputDuration, out time))
+        {
+            return time > 0;
+        }
+
+        return false;
+    }
+}
+
+[HarmonyPatch(typeof(PlayerBroadcastCommand), nameof(PlayerBroadcastCommand.OnExecute))]
+internal class PlayerBroadcastPatch
+{
+    public static bool Prefix(PlayerBroadcastCommand __instance, ArraySegment<string> arguments, ICommandSender sender,
+        ref string response, ref bool __result)
+    {
+        if (!Plugin.Instance.Config.ReplaceBroadcastCommand)
+        {
+            Log.Info("Broadcast command is not replaced");
+            return true;
+        }
+
+        var list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out var array);
+        if (array == null || array.Length < __instance.MinimumArguments)
+        {
+            response = "To execute this command provide at least 3 arguments!\nUsage: " + arguments.At(0) + " " +
+                       __instance.DisplayCommandUsage();
+            __result = false;
             return false;
         }
+
+        var text = array[0];
+        if (!IsValidDuration(text, out var num))
+        {
+            response = string.Concat("Invalid argument for duration: ", text, " Usage: ", arguments.At(0), " ",
+                __instance.DisplayCommandUsage());
+            return false;
+        }
+
+        var flag = HasInputFlag(array[1], out var broadcastFlags, __instance.MinimumArguments, array.Length);
+        var text2 = RAUtils.FormatArguments(array.Segment(1), flag ? 1 : 0);
+        var stringBuilder = StringBuilderPool.Shared.Rent();
+        var num2 = 0;
+        var ids = ListPool<int>.Shared.Rent();
+        var ls = ListPool<Player>.Shared.Rent();
+
+        foreach (var referenceHub in list)
+        {
+            if (num2++ != 0) stringBuilder.Append(", ");
+            stringBuilder.Append(referenceHub.LoggedNameFromRefHub());
+            var player = Player.Get(referenceHub);
+            var broadcast = API.MultiBroadcast.AddPlayerBroadcast(player, num, text2);
+            ids.Add(broadcast.Id);
+            ls.Add(player);
+        }
+
+        ServerLogs.AddLog(ServerLogs.Modules.Administrative,
+            $"{sender.LogName} broadcast text \"{text2}\" to {num2} players. Duration: {num} seconds. Affected players: {stringBuilder}. Broadcast Flag: {broadcastFlags}.",
+            ServerLogs.ServerLogType.RemoteAdminActivity_GameChanging);
+        StringBuilderPool.Shared.Return(stringBuilder);
+        response = num2 >= 2
+            ? $"Added broadcast for {num2} players with id {string.Join(", ", ids)}"
+            : "Added broadcast for " + ls[0].Nickname + " with id " + ids[0];
+        ListPool<Player>.Shared.Return(ls);
+        ListPool<int>.Shared.Return(ids);
+        __result = true;
+        return false;
+    }
+
+    private static bool HasInputFlag(string inputFlag, out Broadcast.BroadcastFlags broadcastFlag, int minimumArguments, int argumentCount = 0)
+    {
+        bool num = RAUtils.IsDigit.IsMatch(inputFlag);
+        broadcastFlag = Broadcast.BroadcastFlags.Normal;
+        if (!num && argumentCount >= minimumArguments + 1)
+        {
+            return Enum.TryParse<Broadcast.BroadcastFlags>(inputFlag, ignoreCase: true, out broadcastFlag);
+        }
+
+        return false;
+    }
+
+    private static bool IsValidDuration(string inputDuration, out ushort time)
+    {
+        if (ushort.TryParse(inputDuration, out time))
+        {
+            return time > 0;
+        }
+
+        return false;
     }
 }

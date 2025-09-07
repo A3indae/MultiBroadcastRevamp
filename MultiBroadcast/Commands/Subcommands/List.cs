@@ -1,69 +1,66 @@
-﻿using CommandSystem;
-using Exiled.API.Features;
-using MultiBroadcast.API;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using CommandSystem;
+using MultiBroadcast.API;
 
-namespace MultiBroadcast.Commands.Subcommands
+namespace MultiBroadcast.Commands.Subcommands;
+
+/// <summary>
+///     The list command.
+/// </summary>
+public class List : ICommand
 {
-    public class List : ICommand
+    /// <inheritdoc />
+    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, [UnscopedRef] out string response)
     {
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        if (arguments.Count > 0)
         {
-            if (arguments.Count > 0)
-            {
-                Player player = Player.Get(string.Join(" ", (IEnumerable<string>)arguments));
-                if (player == null)
-                {
-                    response = "Player not found.";
-                    return false;
-                }
-                StringBuilder stringBuilder1 = new StringBuilder($"\n<b>{player.Nickname}'s Broadcast List:</b>\n");
-                foreach (MultiBroadcast.API.Broadcast broadcast in player.GetBroadcasts())
-                {
-                    StringBuilder stringBuilder2 = stringBuilder1;
-                    string str;
-                    if (!string.IsNullOrEmpty(broadcast.Tag))
-                        str = $" - ID: {broadcast.Id}, Duration: {broadcast.Duration}, Priority: {broadcast.Priority}, Tag: {broadcast.Tag}, Text: {broadcast.Text}\n";
-                    else
-                        str = $" - ID: {broadcast.Id}, Duration: {broadcast.Duration}, Priority: {broadcast.Priority}, Text: {broadcast.Text}\n";
-                    stringBuilder2.Append(str);
-                }
-                if (player.GetBroadcasts().Count() == 0)
-                    stringBuilder1.Append("No broadcasts found.");
-                response = stringBuilder1.ToString();
-                return true;
-            }
-            StringBuilder stringBuilder3 = new StringBuilder("\n<b>Current Broadcast List:</b>\n");
+            var str = string.Join(" ", arguments);
+            var player = Exiled.API.Features.Player.Get(str);
 
-            //!
-            var all = MultiBroadcast.API.MultiBroadcast.GetAllBroadcasts();
-            foreach (var broadcast in all.Values.SelectMany(list => list))
+            if (player == null)
             {
-                StringBuilder stringBuilder4 = stringBuilder3;
-                string str;
-                if (!string.IsNullOrEmpty(broadcast.Tag))
-                    str = $" - ID: {broadcast.Id}, Duration: {broadcast.Duration}, Priority: {broadcast.Priority}, Tag: {broadcast.Tag}, Text: {broadcast.Text}\n";
-                else
-                    str = $" - ID: {broadcast.Id}, Duration: {broadcast.Duration}, Priority: {broadcast.Priority}, Text: {broadcast.Text}\n";
-                stringBuilder4.Append(str);
+                response = "Player not found.";
+                return false;
             }
-            if (MultiBroadcast.API.MultiBroadcast.GetAllBroadcasts().Count == 0)
-                stringBuilder3.Append("No broadcasts found.");
-            response = stringBuilder3.ToString();
+
+            var strb = new StringBuilder($"\n<b>{player.Nickname}'s Broadcast List:</b>\n");
+            foreach (var bc in player.GetBroadcasts().Select(broadcast => broadcast))
+                strb.Append(string.IsNullOrEmpty(bc.Tag)
+                    ? $" - ID: {bc.Id}, Duration: {bc.Duration}, Priority: {bc.Priority}, Text: {bc.Text}\n"
+                    : $" - ID: {bc.Id}, Duration: {bc.Duration}, Priority: {bc.Priority}, Tag: {bc.Tag}, Text: {bc.Text}\n");
+
+            if (player.GetBroadcasts().ToList().Count == 0)
+                strb.Append("No broadcasts found.");
+
+            response = strb.ToString();
             return true;
         }
 
-        public string Command { get; } = "list";
+        var sb = new StringBuilder("\n<b>Current Broadcast List:</b>\n");
+        foreach (var bc in API.MultiBroadcast.GetAllBroadcasts().Values.SelectMany(broadcasts => broadcasts))
+            sb.Append(string.IsNullOrEmpty(bc.Tag)
+                ? $" - ID: {bc.Id}, Duration: {bc.Duration}, Priority: {bc.Priority}, Text: {bc.Text}\n"
+                : $" - ID: {bc.Id}, Duration: {bc.Duration}, Priority: {bc.Priority}, Tag: {bc.Tag}, Text: {bc.Text}\n");
 
-        public string[] Aliases { get; } = new string[1] { "l" };
+        if (API.MultiBroadcast.GetAllBroadcasts().Count == 0)
+            sb.Append("No broadcasts found.");
 
-        public string Description { get; } = "List all broadcasts.";
-
-        public bool SanitizeResponse { get; } = false;
+        response = sb.ToString();
+        return true;
     }
 
+    /// <inheritdoc />
+    public string Command { get; } = "list";
+
+    /// <inheritdoc />
+    public string[] Aliases { get; } = new[]{"l"};
+
+    /// <inheritdoc />
+    public string Description { get; } = "List all broadcasts.";
+
+    /// <inheritdoc />
+    public bool SanitizeResponse { get; } = false;
 }

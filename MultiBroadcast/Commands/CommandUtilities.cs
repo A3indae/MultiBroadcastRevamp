@@ -2,31 +2,46 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MultiBroadcast.Commands
-{
-    public static class CommandUtilities
-    {
-        public static bool GetIntArguments(string text, out int[] args)
-        {
-            string[] source = text.Split('.');
-            for (int index = 0; index < source.Length; ++index)
-            {
-                int result;
-                if (!int.TryParse(source[index], out result))
-                {
-                    args = Array.Empty<int>();
-                    return false;
-                }
-                source[index] = result.ToString();
-            }
-            // ISSUE: reference to a compiler-generated field
-            // ISSUE: reference to a compiler-generated field
-            //args = ((IEnumerable<string>)source).Select<string, int>(CommandUtilities.\u003C\u003EO.\u003C0\u003E__Parse ?? (CommandUtilities.\u003C\u003EO.\u003C0\u003E__Parse = new Func<string, int>(int.Parse))).ToArray<int>();
-            args = source.Select(int.Parse).ToArray();
+namespace MultiBroadcast.Commands;
 
-            return true;
+/// <summary>
+///     Command utilities.
+/// </summary>
+public static class CommandUtilities
+{
+    /// <summary>
+    ///    Get the integer arguments from a string.
+    /// </summary>
+    /// <param name="text">The text to parse.</param>
+    /// <param name="args">The integer arguments.</param>
+    /// <returns>The integer arguments.</returns>
+    public static bool GetIntArguments(string text, out int[] args)
+    {
+        var arg = text.Split('.');
+
+        for (var i = 0; i < arg.Length; i++)
+        {
+            if (!int.TryParse(arg[i], out var result))
+            {
+                args = Array.Empty<int>();
+                return false;
+            }
+
+            arg[i] = result.ToString();
         }
 
-        public static string GetStringFromArray<T>(IEnumerable<T> array) => string.Join<T>(", ", array);
+        args = arg.Select(int.Parse).ToArray();
+        return true;
+    }
+
+    /// <summary>
+    ///    Get the string from an array.
+    /// </summary>
+    /// <param name="array">The array to parse.</param>
+    /// <typeparam name="T">The type of the array.</typeparam>
+    /// <returns>The string from the array.</returns>
+    public static string GetStringFromArray<T>(IEnumerable<T> array)
+    {
+        return string.Join(", ", array);
     }
 }

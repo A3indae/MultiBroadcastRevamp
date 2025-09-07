@@ -1,39 +1,49 @@
-﻿using CommandSystem;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using CommandSystem;
 
-namespace MultiBroadcast.Commands.Subcommands
+namespace MultiBroadcast.Commands.Subcommands;
+
+/// <summary>
+///     The edit command.
+/// </summary>
+public class Edit : ICommand
 {
-    public class Edit : ICommand
+    /// <inheritdoc />
+    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, [UnscopedRef] out string response)
     {
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        if (arguments.Count < 2)
         {
-            if (arguments.Count < 2)
-            {
-                response = "Usage: multibroadcast edit <id> <text>";
-                return false;
-            }
-            int[] args;
-            if (!CommandUtilities.GetIntArguments(arguments.At<string>(0), out args))
-            {
-                response = "Usage: multibroadcast edit <id> <text>";
-                return false;
-            }
-            string text = string.Join(" ", arguments.Skip<string>(1));
-            bool flag = MultiBroadcast.API.MultiBroadcast.EditBroadcast(text, args);
-            string stringFromArray = CommandUtilities.GetStringFromArray<int>((IEnumerable<int>)args);
-            response = !flag ? "Error on editing broadcast with id " + stringFromArray : $"Edited broadcast with id {stringFromArray} to {text}";
-            return true;
+            response = "Usage: multibroadcast edit <id> <text>";
+            return false;
         }
 
-        public string Command { get; } = "edit";
+        if (!CommandUtilities.GetIntArguments(arguments.At(0), out var ids))
+        {
+            response = "Usage: multibroadcast edit <id> <text>";
+            return false;
+        }
 
-        public string[] Aliases { get; } = new string[1] { "e" };
+        var text = string.Join(" ", arguments.Skip(1));
 
-        public string Description { get; } = "Edit a broadcast.";
-
-        public bool SanitizeResponse { get; } = false;
+        var result = API.MultiBroadcast.EditBroadcast(text, ids);
+        var str = CommandUtilities.GetStringFromArray(ids);
+        response = !result
+            ? $"Error on editing broadcast with id {str}"
+            : $"Edited broadcast with id {str} to {text}";
+        return true;
     }
+
+    /// <inheritdoc />
+    public string Command { get; } = "edit";
+
+    /// <inheritdoc />
+    public string[] Aliases { get; } = new[] { "e" };
+
+    /// <inheritdoc />
+    public string Description { get; } = "Edit a broadcast.";
+
+    /// <inheritdoc />
+    public bool SanitizeResponse { get; } = false;
 }

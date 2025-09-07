@@ -1,44 +1,51 @@
-﻿using CommandSystem;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using CommandSystem;
 
-namespace MultiBroadcast.Commands.Subcommands
+namespace MultiBroadcast.Commands.Subcommands;
+
+/// <inheritdoc />
+public class SetPriority : ICommand
 {
-    public class SetPriority : ICommand
+    /// <inheritdoc />
+    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, [UnscopedRef] out string response)
     {
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        if (arguments.Count < 2)
         {
-            if (arguments.Count < 2)
-            {
-                response = "Usage: multibroadcast setpriority <id> <priority>";
-                return false;
-            }
-            int[] args;
-            if (!CommandUtilities.GetIntArguments(arguments.At<string>(0), out args))
-            {
-                response = "Usage: multibroadcast setpriority <id> <priority>";
-                return false;
-            }
-            byte result;
-            if (!byte.TryParse(arguments.At<string>(1), out result))
-            {
-                response = "Usage: multibroadcast setpriority <id> <priority>";
-                return false;
-            }
-            bool flag = MultiBroadcast.API.MultiBroadcast.SetPriority(result, args);
-            string stringFromArray = CommandUtilities.GetStringFromArray<int>((IEnumerable<int>)args);
-            response = !flag ? "Error on setting priority for broadcast with id " + stringFromArray : "Set priority for broadcast with id " + stringFromArray;
-            return true;
+            response = "Usage: multibroadcast setpriority <id> <priority>";
+            return false;
         }
 
-        public string Command { get; } = "setpriority";
+        if (!CommandUtilities.GetIntArguments(arguments.At(0), out var ids))
+        {
+            response = "Usage: multibroadcast setpriority <id> <priority>";
+            return false;
+        }
 
-        public string[] Aliases { get; } = new string[1] { "sp" };
+        if (!byte.TryParse(arguments.At(1), out var priority))
+        {
+            response = "Usage: multibroadcast setpriority <id> <priority>";
+            return false;
+        }
 
-        public string Description { get; } = "Set priority of a broadcast.";
+        var result = API.MultiBroadcast.SetPriority(priority, ids);
+        var str = CommandUtilities.GetStringFromArray(ids);
+        response = !result
+            ? $"Error on setting priority for broadcast with id {str}"
+            : $"Set priority for broadcast with id {str}";
 
-        public bool SanitizeResponse { get; } = false;
+        return true;
     }
 
+    /// <inheritdoc />
+    public string Command { get; } = "setpriority";
+
+    /// <inheritdoc />
+    public string[] Aliases { get; } = new[]{"sp" };
+
+    /// <inheritdoc />
+    public string Description { get; } = "Set priority of a broadcast.";
+
+    /// <inheritdoc />
+    public bool SanitizeResponse { get; } = false;
 }

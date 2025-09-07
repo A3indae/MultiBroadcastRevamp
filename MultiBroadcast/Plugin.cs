@@ -1,28 +1,36 @@
-﻿using Exiled.API.Features;
+﻿using System;
+using Exiled.API.Features;
 using HarmonyLib;
-using System;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace MultiBroadcast
 {
     public class Plugin : Plugin<Config>
     {
         public static Plugin Instance { get; private set; }
-        public virtual string Name => "MultiBroadcastRevamp";
-        public virtual string Author => "Cocoa, Revamp by A3indae";
-        public virtual Version Version { get; } = new Version(1, 0, 0);
+
+        public override string Name => "MultiBroadcast";
+        public override string Author => "Cocoa, Migration by A3indae";
+        public override string Prefix => "MultiBroadcast";
+        public override Version Version { get; } = new(1, 1, 2);
+        public override Version RequiredExiledVersion { get; } = new(8, 8, 1);
+
         private Harmony Harmony { get; set; }
+
         public override void OnEnabled()
         {
             base.OnEnabled();
-            Plugin.Instance = this;
-            this.Harmony = new Harmony($"a3indae.multi_broadcastrevamp.{DateTime.Now.Ticks}");
-            this.Harmony.PatchAll();
+            Instance = this;
+            Harmony = new Harmony($"cocoa.multi_broadcast.{DateTime.Now.Ticks}");
+            Harmony.PatchAll();
         }
+
         public override void OnDisabled()
         {
-            this.Harmony.UnpatchAll(null);
-            this.Harmony = null;
-            Plugin.Instance = null;
+            Harmony.UnpatchAll();
+            Harmony = null;
+            Instance = null;
             base.OnDisabled();
         }
     }

@@ -1,75 +1,91 @@
-﻿using CommandSystem;
-using Exiled.API.Features;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using CommandSystem;
+using Exiled.API.Features;
 
-namespace MultiBroadcast.Commands.Subcommands
+namespace MultiBroadcast.Commands.Subcommands;
+
+/// <inheritdoc />
+public class Add : ICommand
 {
-    public class Add : ICommand
+    /// <inheritdoc />
+    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, [UnscopedRef] out string response)
     {
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response) //RIP [UnscopedRef]
+        if (arguments.Count < 1)
         {
-            if (arguments.Count < 1)
-            {
-                response = "Usage: multibroadcast add <map/player>";
-                return false;
-            }
-            switch (arguments.At<string>(0).ToLower()[0])
-            {
-                case 'm':
-                    if (arguments.Count < 3)
-                    {
-                        response = "Usage: multibroadcast add map <duration> <text>";
-                        return false;
-                    }
-                    ushort result1;
-                    if (!ushort.TryParse(arguments.At<string>(1), out result1))
-                    {
-                        response = "Usage: multibroadcast add map <duration> <text>";
-                        return false;
-                    }
-                    string text1 = string.Join(" ", arguments.Skip<string>(2));
-                    IEnumerable<MultiBroadcast.API.Broadcast> source = MultiBroadcast.API.MultiBroadcast.AddMapBroadcast(result1, text1);
-                    int[] array = source != null ? source.Select<MultiBroadcast.API.Broadcast, int>((Func<MultiBroadcast.API.Broadcast, int>)(bc => bc.Id)).ToArray<int>() : (int[])null;
-                    response = source == null ? "Error on adding broadcast" : "Added broadcast for all players with id " + string.Join<int>(", ", (IEnumerable<int>)array);
-                    return true;
-                case 'p':
-                    if (arguments.Count < 4)
-                    {
-                        response = "Usage: multibroadcast add player <player> <duration> <text>";
-                        return false;
-                    }
-                    Player player = Player.Get(arguments.At<string>(1));
-                    if (player == null)
-                    {
-                        response = "Player not found";
-                        return false;
-                    }
-                    ushort result2;
-                    if (!ushort.TryParse(arguments.At<string>(2), out result2))
-                    {
-                        response = "Usage: multibroadcast add player <player> <duration> <text>";
-                        return false;
-                    }
-                    string text2 = string.Join(" ", arguments.Skip<string>(3));
-                    MultiBroadcast.API.Broadcast broadcast = MultiBroadcast.API.MultiBroadcast.AddPlayerBroadcast(player, result2, text2);
-                    int? id = broadcast?.Id;
-                    response = broadcast == null ? "Error on adding broadcast to " + player.Nickname : $"Added broadcast for {player.Nickname} with id {id}";
-                    return true;
-                default:
-                    response = "Usage: multibroadcast add <map/player>";
-                    return false;
-            }
+            response = "Usage: multibroadcast add <map/player>";
+            return false;
         }
 
-        public string Command { get; } = "add";
+        string text;
+        var arg2 = arguments.At(0).ToLower();
 
-        public string[] Aliases { get; } = new string[1] { "a" };
+        switch (arg2[0])
+        {
+            case 'm':
+                if (arguments.Count < 3)
+                {
+                    response = "Usage: multibroadcast add map <duration> <text>";
+                    return false;
+                }
 
-        public string Description { get; } = "Add a broadcast.";
+                if (!ushort.TryParse(arguments.At(1), out var duration))
+                {
+                    response = "Usage: multibroadcast add map <duration> <text>";
+                    return false;
+                }
 
-        public bool SanitizeResponse { get; } = false;
+                text = string.Join(" ", arguments.Skip(2));
+
+                var bcs = API.MultiBroadcast.AddMapBroadcast(duration, text);
+                var ids = bcs?.Select(bc => bc.Id).ToArray();
+
+                response = bcs == null ? "Error on adding broadcast" : $"Added broadcast for all players with id {string.Join(", ", ids)}";
+                return true;
+            case 'p':
+                if (arguments.Count < 4)
+                {
+                    response = "Usage: multibroadcast add player <player> <duration> <text>";
+                    return false;
+                }
+
+                var player = Player.Get(arguments.At(1));
+
+                if (player == null)
+                {
+                    response = "Player not found";
+                    return false;
+                }
+
+                if (!ushort.TryParse(arguments.At(2), out duration))
+                {
+                    response = "Usage: multibroadcast add player <player> <duration> <text>";
+                    return false;
+                }
+
+                text = string.Join(" ", arguments.Skip(3));
+
+                var bc = API.MultiBroadcast.AddPlayerBroadcast(player, duration, text);
+                var id = bc?.Id;
+
+                response = bc == null ? $"Error on adding broadcast to {player.Nickname}" : $"Added broadcast for {player.Nickname} with id {id}";
+                return true;
+            default:
+                response = "Usage: multibroadcast add <map/player>";
+                return false;
+        }
     }
+
+    /// <inheritdoc />
+    public string Command { get; } = "add";
+
+    /// <inheritdoc />
+    public string[] Aliases { get; } = new[] { "a" };
+
+    /// <inheritdoc />
+    public string Description { get; } = "Add a broadcast.";
+
+    /// <inheritdoc />
+    public bool SanitizeResponse { get; } = false;
 }

@@ -1,56 +1,69 @@
-﻿using CommandSystem;
-using Exiled.API.Features;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using CommandSystem;
+using Exiled.API.Features;
 
-namespace MultiBroadcast.Commands.Subcommands
+namespace MultiBroadcast.Commands.Subcommands;
+
+/// <summary>
+///     The remove command.
+/// </summary>
+public class Remove : ICommand
 {
-    public class Remove : ICommand
+    /// <inheritdoc />
+    public bool Execute(ArraySegment<string> arguments, ICommandSender sender, [UnscopedRef] out string response)
     {
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        if (arguments.Count < 1)
         {
-            if (arguments.Count < 1)
-            {
-                response = "Usage: multibroadcast remove <all/player/id>";
-                return false;
-            }
-            switch (arguments.At<string>(0).ToLower()[0])
-            {
-                case 'a':
-                    MultiBroadcast.API.MultiBroadcast.ClearAllBroadcasts();
-                    response = "Removed all broadcasts";
-                    return true;
-                case 'p':
-                    if (arguments.Count < 2)
-                    {
-                        response = "Usage: multibroadcast remove player <player>";
-                        return false;
-                    }
-                    Player player = Player.Get(arguments.At<string>(1));
-                    MultiBroadcast.API.MultiBroadcast.ClearPlayerBroadcasts(player);
-                    response = "Removed all broadcasts for " + player.Nickname;
-                    return true;
-                default:
-                    int[] args;
-                    if (!CommandUtilities.GetIntArguments(arguments.At<string>(0), out args))
-                    {
-                        response = "Usage: multibroadcast remove <id> <text>";
-                        return false;
-                    }
-                    bool flag = MultiBroadcast.API.MultiBroadcast.RemoveBroadcast(args);
-                    string stringFromArray = CommandUtilities.GetStringFromArray<int>((IEnumerable<int>)args);
-                    response = !flag ? "Error on removing broadcast with id " + stringFromArray : "Removed broadcast with id " + stringFromArray;
-                    return true;
-            }
+            response = "Usage: multibroadcast remove <all/player/id>";
+            return false;
         }
 
-        public string Command { get; } = "remove";
+        var arg2 = arguments.At(0).ToLower();
 
-        public string[] Aliases { get; } = new string[1] { "r" };
+        switch (arg2[0])
+        {
+            case 'a':
+                API.MultiBroadcast.ClearAllBroadcasts();
+                response = "Removed all broadcasts";
+                return true;
+            case 'p':
+                if (arguments.Count < 2)
+                {
+                    response = "Usage: multibroadcast remove player <player>";
+                    return false;
+                }
 
-        public string Description { get; } = "Remove a broadcast.";
+                var player = Player.Get(arguments.At(1));
 
-        public bool SanitizeResponse { get; } = false;
+                API.MultiBroadcast.ClearPlayerBroadcasts(player);
+                response = $"Removed all broadcasts for {player.Nickname}";
+                return true;
+            default:
+                if (!CommandUtilities.GetIntArguments(arguments.At(0), out var ids))
+                {
+                    response = "Usage: multibroadcast remove <id> <text>";
+                    return false;
+                }
+
+                var result = API.MultiBroadcast.RemoveBroadcast(ids);
+                var str = CommandUtilities.GetStringFromArray(ids);
+                response = !result
+                    ? $"Error on removing broadcast with id {str}"
+                    : $"Removed broadcast with id {str}";
+                return true;
+        }
     }
+
+    /// <inheritdoc />
+    public string Command { get; } = "remove";
+
+    /// <inheritdoc />
+    public string[] Aliases { get; } = new[] { "r" };
+
+    /// <inheritdoc />
+    public string Description { get; } = "Remove a broadcast.";
+
+    /// <inheritdoc />
+    public bool SanitizeResponse { get; } = false;
 }
