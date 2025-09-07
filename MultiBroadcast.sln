@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33502.453
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiBroadcast", "MultiBroadcast\MultiBroadcast.csproj", "{79365E25-C1A8-483D-AF6F-CEFA7FC08D64}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{79365E25-C1A8-483D-AF6F-CEFA7FC08D64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79365E25-C1A8-483D-AF6F-CEFA7FC08D64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79365E25-C1A8-483D-AF6F-CEFA7FC08D64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79365E25-C1A8-483D-AF6F-CEFA7FC08D64}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AE1CF16F-FA07-4C7D-B898-D836FDF52019}
+	EndGlobalSection
+EndGlobal
